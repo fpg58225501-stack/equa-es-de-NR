@@ -1,0 +1,754 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Entropia</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  font-family: Arial, sans-serif;
+  background: #f3f6fa;
+  color: #172638;
+}
+
+.container {
+  max-width: 960px;
+  margin: auto;
+}
+
+header {
+  background: white;
+  padding: 26px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e6ed;
+}
+
+h1 {
+  margin: 0 0 10px;
+  font-size: 27px;
+}
+
+h2 {
+  font-size: 19px;
+  margin-top: 0;
+}
+
+p {
+  line-height: 1.55;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e0e6ed;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 18px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+label {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+}
+
+input:focus, select:focus {
+  outline: 2px solid #93c5fd;
+  border-color: #2563eb;
+}
+
+.equation {
+  padding: 18px;
+  background: #f5f8fc;
+  border-radius: 9px;
+  margin: 16px 0;
+  font-family: Georgia, serif;
+  font-size: 20px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+button {
+  background: #175cd3;
+  border: none;
+  color: white;
+  padding: 14px 24px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #124bb0;
+}
+
+button.secondary {
+  background: #e8eef7;
+  color: #172638;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.result {
+  background: #f0f7ff;
+  border-left: 5px solid #175cd3;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.big {
+  font-size: 30px;
+  font-weight: bold;
+  color: #124bb0;
+  margin: 10px 0;
+}
+
+.step {
+  padding: 15px 0;
+  border-bottom: 1px solid #e5e7eb;
+  line-height: 1.8;
+}
+
+.step:last-child {
+  border-bottom: none;
+}
+
+.step strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.formula {
+  font-family: Georgia, serif;
+  font-size: 18px;
+  padding: 10px;
+  overflow-wrap: anywhere;
+}
+
+.muted {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.error {
+  color: #a11919;
+  background: #fff0f0;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 650px) {
+  body {
+    padding: 10px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .big {
+    font-size: 25px;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+  <h1>Simulador de Entropia</h1>
+  <p>
+    Resolução computacional de problemas de Termodinâmica
+    utilizando funções do calor ou da entalpia.
+  </p>
+  <p class="muted">
+    Processos internamente reversíveis. Para funções H(T),
+    considera-se pressão constante.
+  </p>
+</header>
+
+<section class="card">
+  <h2>1. Escolha o problema</h2>
+
+  <div class="grid">
+
+    <div class="field">
+      <label for="tipo">Função utilizada</label>
+      <select id="tipo" onchange="atualizar()">
+        <option value="Q">Calor Q(T)</option>
+        <option value="H">Entalpia H(T)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="modo">O que deseja calcular?</label>
+      <select id="modo" onchange="atualizar()">
+        <option value="temperatura">Temperatura final T₂</option>
+        <option value="entropia">Variação de entropia ΔS</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="unidade">Unidade de energia</label>
+      <select id="unidade" onchange="atualizar()">
+        <option value="J">J</option>
+        <option value="kJ">kJ</option>
+      </select>
+    </div>
+
+  </div>
+</section>
+
+<section class="card">
+  <h2>2. Informe a função</h2>
+
+  <p>
+    Utilize uma função polinomial de até terceiro grau:
+  </p>
+
+  <div class="equation" id="funcao">
+    Q(T) = aT³ + bT² + cT + d
+  </div>
+
+  <div class="grid">
+
+    <div class="field">
+      <label for="a">Coeficiente a (T³)</label>
+      <input id="a" type="number" step="any" value="0">
+    </div>
+
+    <div class="field">
+      <label for="b">Coeficiente b (T²)</label>
+      <input id="b" type="number" step="any" value="0.25">
+    </div>
+
+    <div class="field">
+      <label for="c">Coeficiente c (T)</label>
+      <input id="c" type="number" step="any" value="180">
+    </div>
+
+    <div class="field">
+      <label for="d">Constante d</label>
+      <input id="d" type="number" step="any" value="-63000">
+    </div>
+
+  </div>
+
+  <p class="muted">
+    A constante d não altera a variação de entropia,
+    pois sua derivada é zero.
+  </p>
+</section>
+
+<section class="card">
+  <h2>3. Dados termodinâmicos</h2>
+
+  <div class="grid">
+
+    <div class="field">
+      <label for="T1">Temperatura inicial T₁ (K)</label>
+      <input id="T1" type="number" step="any" value="310">
+    </div>
+
+    <div class="field" id="campoDS">
+      <label for="DS">Variação de entropia ΔS</label>
+      <input id="DS" type="number" step="any" value="160">
+    </div>
+
+    <div class="field hidden" id="campoT2">
+      <label for="T2">Temperatura final T₂ (K)</label>
+      <input id="T2" type="number" step="any" value="500">
+    </div>
+
+  </div>
+
+  <div class="actions">
+    <button onclick="calcular()">Calcular</button>
+    <button class="secondary" onclick="limpar()">
+      Limpar resultado
+    </button>
+  </div>
+
+</section>
+
+<section class="card hidden" id="saida">
+  <h2>4. Resultado</h2>
+  <div id="resultado"></div>
+
+  <h2>Resolução matemática</h2>
+  <div id="passos"></div>
+</section>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function numero(id) {
+  const campo = $(id);
+  const valor = Number(campo.value);
+
+  if (
+    campo.value.trim() === "" ||
+    !Number.isFinite(valor)
+  ) {
+    throw new Error(
+      "Preencha corretamente o campo: " + id
+    );
+  }
+
+  return valor;
+}
+
+function fmt(x, casas = 6) {
+  if (!Number.isFinite(x)) {
+    return "indefinido";
+  }
+
+  return x.toLocaleString("pt-BR", {
+    maximumFractionDigits: casas
+  });
+}
+
+function atualizar() {
+  const tipo = $("tipo").value;
+  const modo = $("modo").value;
+
+  $("funcao").textContent =
+    `${tipo}(T) = aT³ + bT² + cT + d`;
+
+  $("campoDS").classList.toggle(
+    "hidden",
+    modo !== "temperatura"
+  );
+
+  $("campoT2").classList.toggle(
+    "hidden",
+    modo !== "entropia"
+  );
+
+  $("saida").classList.add("hidden");
+}
+
+function limpar() {
+  $("saida").classList.add("hidden");
+}
+
+/*
+  F(T) = aT³ + bT² + cT + d
+
+  dF/dT = 3aT² + 2bT + c
+
+  dS = (1/T)(dF/dT)dT
+
+  dS = (3aT + 2b + c/T)dT
+*/
+
+function primitiva(T, a, b, c) {
+  return (
+    1.5 * a * T * T +
+    2 * b * T +
+    c * Math.log(T)
+  );
+}
+
+function entropia(T1, T2, a, b, c) {
+  return (
+    1.5 * a * (T2*T2 - T1*T1) +
+    2 * b * (T2 - T1) +
+    c * Math.log(T2/T1)
+  );
+}
+
+function capacidade(T, a, b, c) {
+  return (
+    3 * a * T*T +
+    2 * b * T +
+    c
+  );
+}
+
+/*
+  Verifica se dF/dT é positiva em
+  todo o intervalo analisado.
+*/
+function capacidadePositiva(L, U, a, b, c) {
+  const pontos = [L, U];
+
+  if (a !== 0) {
+    const vertice = -b / (3*a);
+
+    if (vertice > L && vertice < U) {
+      pontos.push(vertice);
+    }
+  }
+
+  return pontos.every(
+    T => capacidade(T, a, b, c) > 0
+  );
+}
+
+/*
+  Solução por bisseção.
+
+  Não exige chute inicial para T2.
+  O programa determina automaticamente
+  um intervalo que contém a raiz.
+*/
+function resolverTemperatura(T1, alvo, a, b, c) {
+  if (alvo === 0) {
+    return {
+      temperatura: T1,
+      iteracoes: 0
+    };
+  }
+
+  const funcao = T =>
+    entropia(T1, T, a, b, c) - alvo;
+
+  let L;
+  let U;
+
+  if (alvo > 0) {
+    L = T1;
+    U = Math.max(T1 + 1, T1 * 1.2);
+
+    let contador = 0;
+
+    while (
+      funcao(U) < 0 &&
+      contador < 200
+    ) {
+      U *= 1.5;
+      contador++;
+
+      if (
+        !Number.isFinite(U) ||
+        U > 1e12
+      ) {
+        break;
+      }
+    }
+
+    if (
+      !Number.isFinite(U) ||
+      U > 1e12 ||
+      funcao(U) < 0
+    ) {
+      throw new Error(
+        "Não foi possível encontrar uma raiz " +
+        "física no intervalo pesquisado."
+      );
+    }
+
+  } else {
+    U = T1;
+    L = T1 / 2;
+
+    let contador = 0;
+
+    while (
+      funcao(L) > 0 &&
+      contador < 200
+    ) {
+      L /= 2;
+      contador++;
+
+      if (L < 1e-10) {
+        break;
+      }
+    }
+
+    if (funcao(L) > 0) {
+      throw new Error(
+        "Não foi possível encontrar uma " +
+        "temperatura positiva."
+      );
+    }
+  }
+
+  if (!capacidadePositiva(L, U, a, b, c)) {
+    throw new Error(
+      "A capacidade térmica efetiva não é " +
+      "positiva em todo o intervalo encontrado. " +
+      "O modelo pode apresentar múltiplas " +
+      "soluções ou não ser fisicamente adequado."
+    );
+  }
+
+  let iteracoes = 0;
+
+  for (let i = 0; i < 250; i++) {
+    const M = L + (U-L)/2;
+    const valor = funcao(M);
+
+    iteracoes = i + 1;
+
+    if (valor > 0) {
+      U = M;
+    } else {
+      L = M;
+    }
+
+    if (
+      Math.abs(U-L) <
+      1e-11 * Math.max(1, Math.abs(M))
+    ) {
+      break;
+    }
+  }
+
+  return {
+    temperatura: (L+U)/2,
+    iteracoes
+  };
+}
+
+function passo(titulo, conteudo) {
+  return `
+    <div class="step">
+      <strong>${titulo}</strong>
+      <div class="formula">${conteudo}</div>
+    </div>
+  `;
+}
+
+function calcular() {
+  try {
+    const a = numero("a");
+    const b = numero("b");
+    const c = numero("c");
+    const d = numero("d");
+    const T1 = numero("T1");
+
+    const tipo = $("tipo").value;
+    const modo = $("modo").value;
+    const unidade = $("unidade").value;
+    const unidadeS = unidade + "/K";
+
+    if (T1 <= 0) {
+      throw new Error(
+        "A temperatura absoluta deve ser " +
+        "maior que zero."
+      );
+    }
+
+    if (
+      a === 0 &&
+      b === 0 &&
+      c === 0
+    ) {
+      throw new Error(
+        "A função é constante: não há " +
+        "variação de entropia."
+      );
+    }
+
+    let T2;
+    let DS;
+    let iteracoes = null;
+
+    if (modo === "temperatura") {
+      DS = numero("DS");
+
+      const solucao = resolverTemperatura(
+        T1, DS, a, b, c
+      );
+
+      T2 = solucao.temperatura;
+      iteracoes = solucao.iteracoes;
+
+    } else {
+      T2 = numero("T2");
+
+      if (T2 <= 0) {
+        throw new Error(
+          "A temperatura final deve ser " +
+          "maior que zero."
+        );
+      }
+
+      if (!capacidadePositiva(
+        Math.min(T1, T2),
+        Math.max(T1, T2),
+        a, b, c
+      )) {
+        throw new Error(
+          "A capacidade térmica efetiva deve " +
+          "ser positiva no intervalo analisado."
+        );
+      }
+
+      DS = entropia(T1, T2, a, b, c);
+    }
+
+    const verificacao = entropia(
+      T1, T2, a, b, c
+    );
+
+    const funcaoTexto =
+      `${tipo}(T) = ${fmt(a)}T³ + ` +
+      `${fmt(b)}T² + ${fmt(c)}T + ` +
+      `(${fmt(d)})`;
+
+    const derivadaTexto =
+      `d${tipo}/dT = ${fmt(3*a)}T² + ` +
+      `${fmt(2*b)}T + ${fmt(c)}`;
+
+    const integrandoTexto =
+      `${fmt(3*a)}T + ${fmt(2*b)} + ` +
+      `${fmt(c)}/T`;
+
+    const primitivaTexto =
+      `${fmt(1.5*a)}T² + ` +
+      `${fmt(2*b)}T + ` +
+      `${fmt(c)}ln(T)`;
+
+    let html = "";
+
+    html += passo(
+      "Etapa 1 — Função fornecida",
+      funcaoTexto
+    );
+
+    html += passo(
+      "Etapa 2 — Derivada",
+      derivadaTexto
+    );
+
+    html += passo(
+      "Etapa 3 — Equação diferencial da entropia",
+      `dS = (1/T) d${tipo}<br>` +
+      `dS = (${integrandoTexto}) dT`
+    );
+
+    html += passo(
+      "Etapa 4 — Integração",
+      `ΔS = ∫[${fmt(T1)}, ${fmt(T2)}] ` +
+      `(${integrandoTexto}) dT<br>` +
+      `Primitiva: ${primitivaTexto}`
+    );
+
+    html += passo(
+      "Etapa 5 — Aplicação dos limites",
+      `ΔS = ${fmt(1.5*a)}(T₂² − T₁²) + ` +
+      `${fmt(2*b)}(T₂ − T₁) + ` +
+      `${fmt(c)}ln(T₂/T₁)<br><br>` +
+      `ΔS = ${fmt(1.5*a)}(${fmt(T2)}² − ` +
+      `${fmt(T1)}²) + ` +
+      `${fmt(2*b)}(${fmt(T2)} − ${fmt(T1)}) + ` +
+      `${fmt(c)}ln(${fmt(T2)}/${fmt(T1)})`
+    );
+
+    if (iteracoes !== null) {
+      html += passo(
+        "Etapa 6 — Solução computacional",
+        `A equação foi resolvida pelo método ` +
+        `da bisseção, com ${iteracoes} ` +
+        `iterações.<br>` +
+        `Não foi necessário informar uma ` +
+        `estimativa inicial de T₂.`
+      );
+    }
+
+    html += passo(
+      "Verificação",
+      `ΔS calculada = ` +
+      `${fmt(verificacao, 8)} ${unidadeS}`
+    );
+
+    $("resultado").innerHTML = `
+      <div class="result">
+        <div class="muted">
+          ${modo === "temperatura"
+            ? "TEMPERATURA FINAL"
+            : "VARIAÇÃO DE ENTROPIA"}
+        </div>
+
+        <div class="big">
+          ${modo === "temperatura"
+            ? fmt(T2, 4) + " K"
+            : fmt(DS, 4) + " " + unidadeS}
+        </div>
+
+        <div>
+          T₁ = ${fmt(T1)} K |
+          T₂ = ${fmt(T2, 4)} K
+        </div>
+
+        <div style="margin-top:8px">
+          ΔS = ${fmt(DS, 4)} ${unidadeS}
+        </div>
+
+        <div class="muted" style="margin-top:8px">
+          T₂ = ${fmt(T2 - 273.15, 4)} °C
+        </div>
+      </div>
+    `;
+
+    $("passos").innerHTML = html;
+    $("saida").classList.remove("hidden");
+
+    $("saida").scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+  } catch (erro) {
+    $("resultado").innerHTML =
+      `<div class="error">${erro.message}</div>`;
+
+    $("passos").innerHTML = "";
+    $("saida").classList.remove("hidden");
+  }
+}
+
+atualizar();
+</script>
+
+</body>
+</html>
